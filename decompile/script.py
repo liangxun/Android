@@ -9,7 +9,7 @@ from androguard.util import read
 from settings import *
 
 
-def unzip(apk_path):
+def unzip(apk_path, out_path):
     if not os.path.isfile(apk_path):
         logger.error("{} is not a valid file.".format(apk_path.split('/')[-1]))
         raise AssertionError
@@ -17,49 +17,56 @@ def unzip(apk_path):
         logger.error("{} is not a apk file.".format(apk_path))
         raise AssertionError
     zf = zipfile.ZipFile(apk_path, mode='r')
-    dex = zf.extract("classes.dex", SCRIPT_PATH+'/data/{}'.format(apk_path.split('/')[-1]))
-    xml = zf.extract("AndroidManifest.xml", SCRIPT_PATH+'/data/{}'.format(apk_path.split('/')[-1]))
+    dex = zf.extract("classes.dex", out_path+'/{}'.format(apk_path.split('/')[-1]))
+    xml = zf.extract("AndroidManifest.xml", out_path+'/{}'.format(apk_path.split('/')[-1]))
     return dex, xml
 
-def dex2smali(dex_path):
-    smali_path = SCRIPT_PATH+'/data/{}/smali'.format(dex_path.split('/')[-2])
+def dex2smali(dex_path, out_path):
+    smali_path = out_path+'/{}/smali'.format(dex_path.split('/')[-2])
     jar_path = SCRIPT_PATH + '/baksmali-2.2.6.jar'
     command = ['java', '-jar', jar_path, 'disassemble', dex_path, '-o', smali_path]
     retcode = subprocess.run(command)
-    # print(retcode)
 
-def decode_manifest(xml_path):
+def decode_manifest(xml_path, out_path):
     manifest = AXMLPrinter(read(xml_path)).get_xml_obj()
     buff = etree.tounicode(manifest, pretty_print=True)
-    with open(SCRIPT_PATH+'/data/{}/manifest.xml'.format(xml_path.split('/')[-2]), 'w') as f:
+    with open(out_path+'/{}/manifest.xml'.format(xml_path.split('/')[-2]), 'w') as f:
         f.write(buff)
 
-def run(apks_path):
+def run(apks_path, out_path):
     cnt = 1
-    ret_path = SCRIPT_PATH + '/data/'
     for apk in os.listdir(apks_path):
-        if os.path.exists(os.path.join(ret_path, apk)):
+        if os.path.exists(os.path.join(out_path, apk)):
             logger.info("{}, {} already exists".format(cnt, apk))
         else:
             logger.info("{}, {}".format(cnt, apk))
             iron_apk_path = os.path.join(apks_path, apk)
             try:
-                dex, xml = unzip(iron_apk_path)
-                decode_manifest(xml)
-                dex2smali(dex)
-            except:
+                dex, xml = unzip(iron_apk_path, out_path)
+                decode_manifest(xml, out_path)
+                dex2smali(dex, out_path)
+                if CLEAN is True:
+                    os.remove(dex)
+                    os.remove(xml)
+            except Exception as e:
+                print(e)
                 logger.error("{}, error".format(apk))
                 pass
         cnt += 1
     
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         print("takes 1 argument.")
         print("Usage:")
-        print("    $ python apks_path")
+        print("    $ python apks_path out_path")
     apks_path = sys.argv[1]
-    run(apks_path)
-        
+    out_path = sys.argv[2]
 
+    apks_normal = apks_path+'/normal_apks'
+    decompiled_normal = out_path+'/normal'
+    run(apks_normal, decompiled_normal)
 
+    apks_malware = apks_path+'/malware_apks'
+    decompiled_malware = out_path+'/malware'
+    run(apks_malware, decompiled_malware)
