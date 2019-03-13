@@ -9,7 +9,7 @@ from androguard.util import read
 from settings import *
 
 
-def unzip(apk_path, out_path):
+def unzip(apk_path):
     if not os.path.isfile(apk_path):
         logger.error("{} is not a valid file.".format(apk_path.split('/')[-1]))
         raise AssertionError
@@ -17,8 +17,8 @@ def unzip(apk_path, out_path):
         logger.error("{} is not a apk file.".format(apk_path))
         raise AssertionError
     zf = zipfile.ZipFile(apk_path, mode='r')
-    dex = zf.extract("classes.dex", out_path+'/{}'.format(apk_path.split('/')[-1]))
-    xml = zf.extract("AndroidManifest.xml", out_path+'/{}'.format(apk_path.split('/')[-1]))
+    dex = zf.extract("classes.dex", SCRIPT_PATH+'/data/{}'.format(apk_path.split('/')[-1]))
+    xml = zf.extract("AndroidManifest.xml", SCRIPT_PATH+'/data/{}'.format(apk_path.split('/')[-1]))
     return dex, xml
 
 def dex2smali(dex_path, out_path):
@@ -42,12 +42,14 @@ def run(apks_path, out_path):
             logger.info("{}, {}".format(cnt, apk))
             iron_apk_path = os.path.join(apks_path, apk)
             try:
-                dex, xml = unzip(iron_apk_path, out_path)
+                os.mkdir(os.path.join(out_path, apk))
+                dex, xml = unzip(iron_apk_path)
                 decode_manifest(xml, out_path)
                 dex2smali(dex, out_path)
                 if CLEAN is True:
                     os.remove(dex)
                     os.remove(xml)
+                    os.rmdir(SCRIPT_PATH+'/data/{}'.format(apk))
             except Exception as e:
                 print(e)
                 logger.error("{}, error".format(apk))
@@ -62,11 +64,11 @@ if __name__ == '__main__':
         print("    $ python apks_path out_path")
     apks_path = sys.argv[1]
     out_path = sys.argv[2]
-
+    '''
     apks_normal = apks_path+'/normal_apks'
     decompiled_normal = out_path+'/normal'
     run(apks_normal, decompiled_normal)
-
+    '''
     apks_malware = apks_path+'/malware_apks'
     decompiled_malware = out_path+'/malware'
     run(apks_malware, decompiled_malware)
