@@ -35,6 +35,12 @@ class Extractor:
         xml = etree.parse(xml_path)
         uses_permissions = []
         for item in xml.findall("uses-permission"):
+            value = item.get(NS_ANDROID + 'name')
+            if value is None:
+                value = item.get('name')
+                if value:
+                    logger.warning("Failed to get the attribute '{}' on tag '{}' with namespace. "
+                            "But found the same attribute without namespace!".format('name', '<uses-permission>'))
             uses_permissions.append(item.get(NS_ANDROID + 'name'))
         return uses_permissions
 
