@@ -1,4 +1,5 @@
 import os
+import sys
 from lxml import etree
 import json
 import logging.config
@@ -41,7 +42,7 @@ class Extractor:
                 if value:
                     logger.warning("Failed to get the attribute '{}' on tag '{}' with namespace. "
                             "But found the same attribute without namespace!".format('name', '<uses-permission>'))
-            uses_permissions.append(item.get(NS_ANDROID + 'name'))
+            uses_permissions.append(value)
         return uses_permissions
 
     def get_tpl(self, tpl_path):
@@ -93,15 +94,21 @@ class Extractor:
 
 
 if __name__ == '__main__':
-    api_dict = '/home/thinker/Projects/Android/data/mapping_5.1.1.csv'
+    assert len(sys.argv) == 2
+    tag = sys.argv[1]
 
-    path_decompiled = '/media/thinker/DATA/BUPT/Codes/Data/SoftwareSecurity/decompiled/malware'
-    path_tpl = '/media/thinker/DATA/BUPT/Codes/Data/SoftwareSecurity/TPL/malware-tpl'
-    out_path = "/home/thinker/Projects/Android/data/malware_report"
+    api_dict = '/home/security/Android/static/mapping_5.1.1.csv'
+    path_decompiled = '/home/security/data/decompiled/{}'.format(tag)
+    path_tpl = '/home/security/data/TPL/{}-tpl'.format(tag)
+
+    out_path = "/home/security/data/reports/{}".format(tag)
+
     E = Extractor(path_decompiled, path_tpl, api_dict)
-    # apk = '44cf724e3c80c2eea38ba1020bc67f52.apk'
-    apks_path = "/media/thinker/DATA/BUPT/Codes/Data/SoftwareSecurity/malware_apks"
+
+    apks_path = "/home/security/data/{}_apks".format(tag) # 遍历时用到最原始的apk目录，没有实际作用。因为反编译和提取第三方库都存在解析失败的APK,所以只有原始apk文件中的是全集
+    
     cnt = 1
+    error_cnt = 0
     for apk in os.listdir(apks_path):
         if os.path.exists(os.path.join(out_path, apk)):
             logger.info("{}, {} already exists".format(cnt, apk))
@@ -110,12 +117,11 @@ if __name__ == '__main__':
                 logger.info("{}, {}".format(cnt, apk))
                 a, b, c = E.extract(apk)
                 report = {"permission": a, "sensitive_api": b, "tpl": c}
-                # print(json.dumps(report, indent=4, sort_keys=True))
                 report_file = os.path.join(out_path, apk)
                 with open(report_file, 'w') as f:
                     json.dump(report, f, indent=4, sort_keys=True)
             except Exception as e:
                 logger.error("{}, error \n{}".format(apk,e))
+                error_cnt += 1
                 pass
         cnt += 1
-
