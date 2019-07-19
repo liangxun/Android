@@ -240,7 +240,7 @@ if __name__ == '__main__':
     lrd = LibRadarLite(iron_apk_path)
     res = lrd.compare()
     sha256 = lrd.get_sha256()
-    print(json.dumps(res, indent=4, sort_keys=True))
+    #print(json.dumps(res, indent=4, sort_keys=True))
 
 
     # ============== modify ==============
