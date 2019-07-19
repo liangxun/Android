@@ -32,6 +32,6 @@ def GetInvokedPscoutApis(DalvikCodeList):
                     Part = Part.strip()
                     FullApi = Part.split('(')[0].strip()
                     if FullApi in PSCOUT_SET:
-                        print(FullApi)
+                        # print(FullApi)
                         ApiList.add(FullApi)
     return ApiList
